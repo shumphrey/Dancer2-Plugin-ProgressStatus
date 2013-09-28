@@ -16,10 +16,9 @@ To use this module in your Dancer2 route:
   use Dancer2::Plugin::ProgressStatus;
 
   get '/route' => sub {
-    start_progress_status({ name => 'progress1', total => 100 });
+    my $prog = start_progress_status('progress1');
     while($some_condition) {
-        # .. do some slow running stuff
-        update_progress_status('progress1', 'an update message');
+        $prog++;
     }
   };
 ````
@@ -27,8 +26,6 @@ To use this module in your Dancer2 route:
 Then with some javascript on the front end, something like this:
 
 ````javascript
-  <script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
-  <script type="text/javascript">
       function displayProgress(data, done) {
           var prog = (data.count / data.total) * 100;
           $('#progress').html(Math.round(prog) + '%');
@@ -48,5 +45,4 @@ Then with some javascript on the front end, something like this:
       }
 
       checkProgress();
-  </script>
 ````
