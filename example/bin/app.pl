@@ -2,9 +2,11 @@
 
 =head1 NAME
 
-./...
+./app.pl
 
 =head1 DESCRIPTION
+
+A simple example app to demonstrate progress status
 
 =cut
 
