@@ -12,7 +12,7 @@ whilst your long running task is in progress.
 How you break up the running task is up to you.
 
 Whilst the long running task is in progress, an AJAX GET request can be made to
-C</_progressstatus/:name> to fetch JSON serialized data representing the
+C</_progress_status/:name> to fetch JSON serialized data representing the
 progress status that matches :name
 
 This progress module does not depend on an event loop based webserver such as
@@ -26,18 +26,21 @@ for a production environment at this time.
 =head1 SYNOPSIS
 
   get '/route' => sub {
-    start_progress_status({ name => 'progress1', total => 100 });
+    my $progress = start_progress_status({ name => 'progress1', total => 100 });
     while($some_condition) {
         # .. do some slow running stuff
-        update_progress_status('progress1', 'an update message');
+        $progress++; # add's one to the progress
+        $progress->add_message('an update message');
     }
+
+    // $progress goes out of scope here and automatically ends the progress meter
   };
 
 Then with some javascript on the front end, something like this:
 
   function checkProgress() {
-      $.getJSON('/_progressstatus/progress1', function(data) {
-         if ( data.finished == true ) {
+      $.getJSON('/_progress_status/progress1', function(data) {
+         if ( !data.in_progress ) {
             console.log("Finished progress1");
             return;
          }
@@ -55,8 +58,7 @@ Then with some javascript on the front end, something like this:
       dir: "/tmp/dancer_progress"
 
 The only plugin setting currently understood is where to store the progress
-data.
-Will use a temporary directory if no config settings are supplied.
+data. This is required.
 
 =head1 SEE ALSO
 
@@ -70,31 +72,25 @@ L<Dancer2>
 
 package Dancer2::Plugin::ProgressStatus;
 
-use v5.14;
 use strict;
 use warnings;
 
-use Dancer2::Plugin;
 
 use Digest::MD5 qw/md5_hex/;
 use Path::Tiny;
 use Carp;
 use JSON qw//;
 
-has '_progressstatus_base_dir' => (
-    is      => 'ro',
-    default => sub {
-        my ( $dsl ) = @_;
+use Dancer2::Plugin;
+use Dancer2::Plugin::ProgressStatus::File;
 
-        my $settings = plugin_setting;
-        my $dir = $settings->{dir} or croak 'No ProgressStatus plugin settings in config';
-        return $dir;
-    },
-);
-sub _progressstatus_file {
+sub _progress_status_file {
     my ( $dsl, $name ) = @_;
 
-    return path($dsl->_progressstatus_base_dir, md5_hex($name));
+    my $dir = $dsl->config->{'plugins'}->{ProgressStatus}->{dir}
+                or croak 'No ProgressStatus plugin settings in config';
+
+    return Path::Tiny::path($dir, md5_hex($name));
 }
 
 
@@ -106,10 +102,10 @@ on_plugin_import {
     # Register the route for fetching messages
     $dsl->app->add_route(
         method  => 'get',
-        regexp  => '/_progressstatus/:name',
+        regexp  => '/_progress_status/:name',
         code    => sub {
             my $context = shift;
-            my $data = _get_progressstatus_data($dsl, $context->request->params->{'name'});
+            my $data = _get_progress_status_data($dsl, $context->request->params->{'name'});
             $context->response->content_type('application/json');
 
             return JSON->new->encode($data);
@@ -117,79 +113,37 @@ on_plugin_import {
     );
 };
 
-sub _get_progressstatus_data {
+sub _get_progress_status_data {
     my ($dsl, $name) = @_;
 
-    my $file = $dsl->_progressstatus_file($name);
+    my $file = $dsl->_progress_status_file($name);
     if ( !$file->is_file ) {
-        die "No such progress status $name";
+        return {
+            error  => "No such progress status $name",
+            status => 'error',
+        };
     }
     my $data = JSON->new->decode($file->slurp_utf8());
+    
     delete $data->{pid};
 
     return $data;
 }
 
-sub _set_progressstatus_data {
-    my ($dsl, $name, $args) = @_;
-
-    my $total    = $args->{total}    || 100;
-    my $count    = $args->{count}    || 0;
-    my $messages = $args->{messages} || [];
-    my $update   = $args->{update}   || 0;
-    my $override = $args->{override} || 0;
-
-    my $json = JSON->new;
-    my $file = $dsl->_progressstatus_file($name);
-
-    my $data = {};
-    if ( $file->is_file ) {
-        my $d = $json->decode($file->slurp_utf8());
-        my $in_progress = $d->{in_progress};
-
-        if ( $in_progress && !$override && $d->{pid} != $$ ) {
-            if ( kill 0, $d->{pid} ) {
-                die "Progress status already exists for a running process, and override is not specified\n";
-            }
-        }
-        
-        if ( $update ) {
-            $data = $d;
-        }
-    }
-
-    $data->{total}     ||= $total;
-    $data->{count}       = $count;
-    $data->{messages}  ||= [];
-    $data->{pid}         = $$;
-    $data->{in_progress} = JSON::true;
-
-    if ( $args->{finished} ) {
-        $data->{in_progress} = JSON::false;
-        $data->{count} = $data->{total};
-    }
-
-    push @{$data->{messages}}, @$messages;
-    $file->spew_utf8($json->encode($data));
-}
-
-sub _delete_progressstatus_data {
-    my ($dsl, $name) = @_;
-    my $file = $dsl->_progressstatus_file($name);
-    if ( $file->is_file ) {
-        $file->remove or die "Failed to unlink $file";
-    }
-}
-
 
 =item start_progress_status
 
-  set_progress_status({
-    name => "MyProgressStatus",
-  });
+  my $prog = set_progress_status({ name => "MyProgressStatus" });
 
 Registers a new progress status for this session and automatically creates
 a route for returning data about the progress status.
+
+Returns a progress object that you can use to set the progress.
+e.g.
+
+  $prog++;
+  $prog->add_message();
+  $prog->increment(10);
 
 If an existing progress status with this name already exists and is currently
 in progress for a different pid then this call will die, if the pid is the same
@@ -199,7 +153,7 @@ the same name from running at the same time.
 
 The route for querying the progress status is defined as:
 
-  GET /_progressstatus/:name
+  GET /_progress_status/:name
 
 It returns a JSON serialized structure something like:
 
@@ -207,11 +161,12 @@ It returns a JSON serialized structure something like:
     total: 100,
     count: 20,
     messages: [ "array of messages" ],
-    in_progress: 1
+    in_progress: true
+    status: 'some status message'
   }
 
-Additionally, an after hook is defined to automatically set in_progress to
-false and count to total when the route finishes.
+When the progress object goes out of scope in_progress is automatically
+set to false
 
 set_progress_status takes a C<name> (required), a C<total> (defaults to 100)
 a C<count> (defaults to 0), and C<messages> an optional arrayref of message
@@ -225,49 +180,36 @@ register start_progress_status => sub {
         $args = { name => $args };
     }
 
-    my $name             = delete($args->{name}) or croak 'Must supply progress name';
-    my $delete_on_finish = delete($args->{delete_on_finish}) || 0;
-    my $end_message      = delete($args->{end_message}) || "Finished $name";
-    my $path             = $dsl->request->path;
+    my $name = delete($args->{name}) or croak 'Must supply progress name';
 
-    $dsl->_set_progressstatus_data($name, $args);
+    my $file = $dsl->_progress_status_file($name);
+    if ( $file->is_file ) {
+        my $d = JSON->new->decode($file->slurp_utf8());
+        my $in_progress = $d->{in_progress};
 
-    # Register the hook that will update the progress status
-    # When the route finishes
-    my $hook = Dancer2::Core::Hook->new(
-        name => 'after',
-        code => sub {
-            my $response = shift;
-
-            if ( $dsl->request->path eq $path ) {
-                $dsl->_set_progressstatus_data($name, {
-                    update   => 1,
-                    finished => 1,
-                    messages => [$end_message],
-                });
-                
-                if ( $delete_on_finish ) {
-                    $dsl->_delete_progressstatus_data($name);
-                }
+        if ( $in_progress && $d->{pid} != $$ ) {
+            if ( kill(0, $d->{pid}) ) {
+                die "Progress status $name already exists for a running process, cannot create a new one\n";
             }
         }
+        elsif ( $in_progress ) {
+            die "Progress status $name already exists\n";
+        }
+    }
+
+    my %objargs = (
+        _file   => $file,
     );
-    $dsl->app->add_hook($hook);
-};
 
-=item update_progress_status
+    foreach my $key (qw/total count status messages/) {
+        if ( $args->{$key} ) {
+            $objargs{$key} = $args->{$key};
+        }
+    }
 
-Updates an existing progress status with new data
-
-=cut
-register update_progress_status => sub {
-    my ( $dsl, $name, $count, @messages ) = @_;
-
-    $dsl->_set_progressstatus_data($name, {
-        count    => $count,
-        messages => \@messages,
-        update   => 1,
-    });
+    my $obj = Dancer2::Plugin::ProgressStatus::File->new(%objargs);
+    $obj->save();
+    return $obj;
 };
 
 

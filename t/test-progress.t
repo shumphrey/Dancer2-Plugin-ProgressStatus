@@ -24,55 +24,39 @@ use_ok('Dancer2::Plugin::ProgressStatus');
 
 
 get '/test_progress_status_simple_with_no_args' => sub {
-    start_progress_status('test');
-
-    update_progress_status( 'test', 10 );
-
-    update_progress_status( 'test', 20 );
+    my $prog = start_progress_status('test');
+    $prog++;
+    $prog++; # count should be 2
 
     return 'ok';
 };
 
 get '/test_progress_status_with_args' => sub {
-    start_progress_status({
+    my $prog = start_progress_status({
         name     => 'test2',
         total    => 200,
         count    => 0,
-        override => 1,
     });
 
-    update_progress_status( 'test2', 10, 'Message1' );
-
-    update_progress_status( 'test2', 110, 'Message2' );
+    $prog++;
+    $prog++;
+    $prog++;
+    $prog->add_message('Message1');
+    $prog->add_message('Message2');
+    # count should be 3 and messages should be size 2
 
     return 'ok';
 };
 
 get '/test_progress_status_good_concurrency' => sub {
-    start_progress_status({
+    my $prog1 = start_progress_status({
         name    => 'test3',
         total   => 200,
-        overide => 1,
     });
-    start_progress_status('test3'); # This should override the first
+    my $prog2 = eval { start_progress_status('test3') }; # This should die
 
-    return 'ok';
-};
-
-## This test is skipped below
-get '/test_progress_status_bad_concurrency' => sub {
-    if ( fork() == 0 ) {
-        start_progress_status({
-            name     => 'test4',
-            total    => 200,
-            override => 1
-        });
-        exit;
-    }
-    else {
-        wait;
-
-        start_progress_status('test4'); # This should die
+    if ( $@ ) {
+        return $@;
     }
 
     return 'ok';
@@ -80,30 +64,28 @@ get '/test_progress_status_bad_concurrency' => sub {
 
 my $response = dancer_response( GET => '/test_progress_status_simple_with_no_args' );
 is( $response->status, 200, '200 response when setting and updating progress' );
-$response = dancer_response( GET => '/_progressstatus/test' );
+$response = dancer_response( GET => '/_progress_status/test' );
 my $data = from_json($response->content);
 is($response->status, 200, 'Get good response from progressstatus');
 is($data->{total}, 100, 'Total is 100');
-is($data->{count}, $data->{total}, 'Count matches total');
+is($data->{count}, 2, 'Count matches total');
+ok(!$data->{in_progress}, 'No longer in progress');
 
 $response = dancer_response( GET => '/test_progress_status_with_args' );
 is( $response->status, 200, '200 response for less simple progress' );
-$response = dancer_response( GET => '/_progressstatus/test2' );
+$response = dancer_response( GET => '/_progress_status/test2' );
 $data = from_json($response->content);
 is($data->{total}, 200, 'Total is 200');
-is($data->{count}, $data->{total}, 'Count matches total');
+is($data->{count}, 3, 'Count matches total');
+is(scalar(@{$data->{messages}}), 2, 'Has two messages');
+ok(!$data->{in_progress}, 'No longer in progress');
 
 
 $response = dancer_response( GET => '/test_progress_status_good_concurrency' );
 is($response->status, 200, 'Two progress meters with the same name and same pid pass');
-$response = dancer_response( GET => '/_progressstatus/test3' );
+like($response->content, qr/^Progress status test3 already exists/, 'two unfinished progress meters with the same name dies');
+$response = dancer_response( GET => '/_progress_status/test3' );
 $data = from_json($response->content);
-is($data->{total}, 100, 'Total is overriden');
+is($data->{total}, 200, 'Total is overriden');
 
-SKIP: {
-    skip 'This test requires manual clean up', 1;
-    $response = dancer_response( GET => '/test_progress_status_bad_concurrency' );
-    is($response->status, 500, 'Two progress meters with different pid fail');
-}
-
-done_testing(11);
+done_testing(14);

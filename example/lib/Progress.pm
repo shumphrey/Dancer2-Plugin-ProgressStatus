@@ -5,16 +5,14 @@ use Dancer2;
 use Dancer2::Plugin::ProgressStatus;
 
 get '/test' => sub {
-    my $prog = start_progress_status({
-       name     => 'test',
-       messages => ["Started meter"],
-       total    => 100, 
-    });
+    my $prog = start_progress_status('test');
 
     foreach my $i (1..10) {
-        update_progress_status('test', $i, 'message1', 'message2');
+        $prog++;
+        $prog->add_message("finished $i");
         sleep 1;
     }
+    $prog->count(100);
 
     content_type 'text/plain';
     return "ok";
@@ -35,7 +33,7 @@ get '/testres' => sub {
         }
     }
     function checkProgress() {
-        $.getJSON('/_progressstatus/test', function(data) {
+        $.getJSON('/_progress_status/test', function(data) {
             if ( !data.in_progress ) {
                 displayProgress(data, true);
                 return;
