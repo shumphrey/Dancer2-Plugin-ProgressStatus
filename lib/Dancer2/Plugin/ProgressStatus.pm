@@ -81,7 +81,7 @@ use Carp;
 use JSON qw//;
 
 use Dancer2::Plugin;
-use Dancer2::Plugin::ProgressStatus::File;
+use Dancer2::Plugin::ProgressStatus::Object;
 
 sub _progress_status_file {
     my ( $dsl, $name ) = @_;
@@ -197,7 +197,19 @@ register start_progress_status => sub {
     }
 
     my %objargs = (
-        _file   => $file,
+        _on_save => sub {
+            my ($obj, $is_finished) = @_;
+            my $data = JSON->new->encode({
+                total       => $obj->total,
+                count       => $obj->count,
+                messages    => $obj->messages,
+                in_progress => $is_finished ? JSON::false : JSON::true,
+                status      => $obj->status,
+                pid         => $$,
+            });
+
+            $file->spew_utf8($data);
+        },
     );
 
     foreach my $key (qw/total count status messages/) {
@@ -206,7 +218,7 @@ register start_progress_status => sub {
         }
     }
 
-    my $obj = Dancer2::Plugin::ProgressStatus::File->new(%objargs);
+    my $obj = Dancer2::Plugin::ProgressStatus::Object->new(%objargs);
     $obj->save();
     return $obj;
 };

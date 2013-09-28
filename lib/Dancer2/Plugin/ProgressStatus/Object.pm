@@ -1,6 +1,6 @@
 =head1 NAME
 
-Dancer2::Plugin::ProgressStatus::File
+Dancer2::Plugin::ProgressStatus::Object
 
 =head1 DESCRIPTION
 
@@ -21,14 +21,13 @@ Steven Humphrey
 
 =cut
 
-package Dancer2::Plugin::ProgressStatus::File;
+package Dancer2::Plugin::ProgressStatus::Object;
 
 use strict;
 use warnings;
 
 use Moo;
 use Scalar::Util qw/looks_like_number/;
-use JSON;
 
 use overload
     '++' => sub { my ($self, $i) = @_; $self->increment($i) },
@@ -53,17 +52,11 @@ has status => (
     default => sub { 'in progress' },
 );
 
-has _file => (
-    is      => 'ro',
-    isa     => sub {
-        die '_file needs a Path::Tiny object' unless ref($_[0]) eq 'Path::Tiny';
-    }
+has _on_save => (
+    is       => 'ro',
+    required => 1,
+    isa      => sub { die 'needs _on_save coderef' unless ref($_[0]) eq 'CODE' },
 );
-
-has _file_pid => (
-    is => 'ro',
-);
-
 
 after [qw/status count/] => sub {
     if ( $_[1] ) {
@@ -87,16 +80,7 @@ will automatically call save.
 sub save {
     my ( $self, $is_finished ) = @_;
 
-    my $data = JSON->new->encode({
-        total       => $self->total,
-        count       => $self->count,
-        messages    => $self->messages,
-        in_progress => $is_finished ? JSON::false : JSON::true,
-        status      => $self->status,
-        pid         => $$,
-    });
-
-    $self->_file->spew_utf8($data);
+    $self->_on_save->($self, $is_finished);
 }
 
 =item increment
@@ -155,21 +139,6 @@ sub add_message {
     push @{$self->messages}, @messages;
     $self->save();
 }
-
-=item delete
-
-Peranently removes the status file.
-
-  $prog->delete();
-
-This will remove the status file and any query on this progress will return a
-hash with status set to 'error'.
-
-=cut
-sub delete {
-    $_[0]->_file->remove or die "Failed to unlink ".$_[0]->_file;
-}
-
 
 sub DESTROY {
     $_[0]->finish();
