@@ -31,10 +31,8 @@ use Scalar::Util qw/looks_like_number/;
 use JSON;
 
 use overload
-    '++' => \&increment,
-    '--' => \&decrement,
-    '+'  => \&increment,
-    '-'  => \&decrement;
+    '++' => sub { my ($self, $i) = @_; $self->increment($i) },
+    '--' => sub { my ($self, $i) = @_; $self->decrement($i) };
 
 has total => (
     is      => 'ro',

@@ -75,7 +75,6 @@ package Dancer2::Plugin::ProgressStatus;
 use strict;
 use warnings;
 
-
 use Digest::MD5 qw/md5_hex/;
 use Path::Tiny;
 use Carp;
