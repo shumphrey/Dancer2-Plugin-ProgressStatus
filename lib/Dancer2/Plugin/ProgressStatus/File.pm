@@ -167,7 +167,7 @@ hash with status set to 'error'.
 
 =cut
 sub delete {
-    $_[0]->_file->remove or die "Failed to unlink $_[0]->_file";
+    $_[0]->_file->remove or die "Failed to unlink ".$_[0]->_file;
 }
 
 
