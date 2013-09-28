@@ -123,7 +123,6 @@ sub _get_progress_status_data {
         };
     }
     my $data = JSON->new->decode($file->slurp_utf8());
-    
     delete $data->{pid};
 
     return $data;
