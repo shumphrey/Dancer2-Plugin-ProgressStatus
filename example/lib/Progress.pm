@@ -1,3 +1,4 @@
+package Progress;
 use strict;
 use warnings;
 
@@ -5,6 +6,10 @@ use Dancer2;
 use Dancer2::Plugin::ProgressStatus;
 
 get '/test' => sub {
+    if ( is_progress_running('test') ) {
+        return 'Progress "test" is already running, please wait until it finishes';
+    }
+
     my $prog = start_progress_status('test');
 
     foreach my $i (1..10) {

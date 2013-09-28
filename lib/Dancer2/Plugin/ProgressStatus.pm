@@ -144,10 +144,10 @@ e.g.
   $prog->increment(10);
 
 If an existing progress status with this name already exists and is currently
-in progress for a different pid then this call will die, if the pid is the same
-the second one will override the first.
-It is up to the app code to prevent multiple progress statuses with
-the same name from running at the same time.
+in progress this call will die without affecting the original status.
+Either wrap this in an eval, use
+L<Dancer2::Plugin::ProgressStatus/is_progress_running> or ensure by some other
+means that two progress meters don't start at the same time.
 
 The route for querying the progress status is defined as:
 
@@ -164,7 +164,7 @@ It returns a JSON serialized structure something like:
   }
 
 When the progress object goes out of scope in_progress is automatically
-set to false
+set to false.
 
 set_progress_status takes a C<name> (required), a C<total> (defaults to 100)
 a C<count> (defaults to 0), and C<messages> an optional arrayref of message
@@ -220,6 +220,31 @@ register start_progress_status => sub {
     my $obj = Dancer2::Plugin::ProgressStatus::Object->new(%objargs);
     $obj->save();
     return $obj;
+};
+
+=item is_progress_running
+
+  my $bool = is_progress_running($name);
+
+Returns true if there is a running progress by this name.
+L<Dancer2::Plugin::ProgressStatus/start_progess_status> dies if two
+progress meters with the same name start at the same time so this can be used
+to confirm without catching the start call in an eval.
+
+=cut
+register is_progress_running => sub {
+    my ( $dsl, $name ) = @_;
+    my $file = $dsl->_progress_status_file($name);
+
+    if ( $file->exists ) {
+        my $d = JSON->new->decode($file->slurp_utf8());
+        my $in_progress = $d->{in_progress};
+
+        if ( $in_progress && $d->{pid} != $$ && kill(0, $d->{pid}) ) {
+            return 1;
+        }
+    }
+    return 0;
 };
 
 
