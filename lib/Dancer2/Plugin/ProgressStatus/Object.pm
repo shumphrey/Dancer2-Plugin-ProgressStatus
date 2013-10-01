@@ -31,7 +31,8 @@ use Scalar::Util qw/looks_like_number/;
 
 use overload
     '++' => sub { my ($self, $i) = @_; $self->increment($i) },
-    '--' => sub { my ($self, $i) = @_; $self->decrement($i) };
+    '--' => sub { my ($self, $i) = @_; $self->decrement($i) },
+    '='  => sub { $_[0] }; # should never clone this object
 
 has total => (
     is      => 'ro',
