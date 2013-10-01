@@ -59,6 +59,7 @@ Then with some javascript on the front end, something like this:
 
 The only plugin setting currently understood is where to store the progress
 data. This is required.
+If the directory does not exist, it will be created.
 
 =head1 SEE ALSO
 
@@ -77,6 +78,7 @@ use warnings;
 
 use Digest::MD5 qw/md5_hex/;
 use Path::Tiny;
+use File::Path qw//;
 use Carp;
 use JSON qw//;
 
@@ -89,7 +91,7 @@ sub _progress_status_file {
     my $dir = $dsl->config->{'plugins'}->{ProgressStatus}->{dir}
                 or croak 'No ProgressStatus plugin settings in config';
     if ( !-d $dir ) {
-        croak "$dir does not exist";
+        File::Path::make_path($dir) or die "Cannot create path $dir";
     }
 
     return Path::Tiny::path($dir, md5_hex($name));
