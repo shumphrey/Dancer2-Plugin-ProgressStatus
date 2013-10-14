@@ -15,12 +15,18 @@ Whilst the long running task is in progress, an AJAX GET request can be made to
 C</_progress_status/:name> to fetch JSON serialized data representing the
 progress status that matches :name
 
+WebServer Dependencies:
+
 This progress module does not depend on an event loop based webserver such as
 L<Twiggy> as the long running request and the query to fetch the progress
 can be issued entirely separately.
 
-It does currently depend on the webserver being hosted on one machine and uses
-local file storage for the progress data and as such is probably not suitable
+It does currently depend on:
+1. More than one worker process running to enable the handling of multiple
+requests at the same time
+
+2. The webserver being hosted on one machine and uses local file storage for
+the progress data and as such is probably not suitable
 for a production environment at this time.
 
 =head1 SYNOPSIS
@@ -204,6 +210,8 @@ register start_progress_status => sub {
         _on_save => sub {
             my ($obj, $is_finished) = @_;
             my $data = JSON->new->encode({
+                start_time  => $obj->start_time,
+                current_time  => $obj->current_time,
                 total       => $obj->total,
                 count       => $obj->count,
                 messages    => $obj->messages,
