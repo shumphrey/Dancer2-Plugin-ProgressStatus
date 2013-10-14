@@ -27,7 +27,9 @@ use strict;
 use warnings;
 
 use Moo;
+use MooX::Types::MooseLike::Base qw/InstanceOf/;
 use Scalar::Util qw/looks_like_number/;
+use DateTime;
 
 use overload
     '++' => sub { my ($self, $i) = @_; $self->increment($i) },
@@ -59,6 +61,18 @@ has _on_save => (
     isa      => sub { die 'needs _on_save coderef' unless ref($_[0]) eq 'CODE' },
 );
 
+has start_time => (
+    is   => 'rw',
+    isa  => InstanceOf['DateTime'],
+    default => sub { DateTime->now; }
+);
+
+has current_time => (
+    is   => 'rw',
+    isa  => InstanceOf['DateTime'],
+    default => sub { DateTime->now; }
+);
+
 after [qw/status count/] => sub {
     if ( $_[1] ) {
         $_[0]->save();
@@ -80,7 +94,7 @@ will automatically call save.
 =cut
 sub save {
     my ( $self, $is_finished ) = @_;
-
+    $self->current_time(DateTime->now);
     $self->_on_save->($self, $is_finished);
 }
 
