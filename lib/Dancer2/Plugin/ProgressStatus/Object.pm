@@ -27,9 +27,7 @@ use strict;
 use warnings;
 
 use Moo;
-use MooX::Types::MooseLike::Base qw/InstanceOf/;
 use Scalar::Util qw/looks_like_number/;
-use DateTime;
 
 use overload
     '++' => sub { my ($self, $i) = @_; $self->increment($i) },
@@ -63,14 +61,12 @@ has _on_save => (
 
 has start_time => (
     is   => 'rw',
-    isa  => InstanceOf['DateTime'],
-    default => sub { DateTime->now; }
+    default => sub { time(); }
 );
 
 has current_time => (
     is   => 'rw',
-    isa  => InstanceOf['DateTime'],
-    default => sub { DateTime->now; }
+    default => sub { time(); }
 );
 
 after [qw/status count/] => sub {
@@ -94,7 +90,7 @@ will automatically call save.
 =cut
 sub save {
     my ( $self, $is_finished ) = @_;
-    $self->current_time(DateTime->now);
+    $self->current_time(time());
     $self->_on_save->($self, $is_finished);
 }
 
