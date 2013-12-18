@@ -109,4 +109,4 @@ my $data = from_json($response->content);
 is($data->{total}, 100, 'Get a sensible response');
 
 
-done_testing(14);
+done_testing(17);
