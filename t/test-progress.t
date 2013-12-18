@@ -62,6 +62,13 @@ get '/test_progress_status_good_concurrency' => sub {
     return 'ok';
 };
 
+# Test progress status with an extra identifier
+get '/test_progress_with_progress_id' => sub {
+    my $prog = start_progress_status();
+
+    return 'ok';
+};
+
 my $response = dancer_response( GET => '/test_progress_status_simple_with_no_args' );
 is( $response->status, 200, '200 response when setting and updating progress' );
 $response = dancer_response( GET => '/_progress_status/test' );
@@ -87,5 +94,19 @@ like($response->content, qr/^Progress status test3 already exists/, 'two unfinis
 $response = dancer_response( GET => '/_progress_status/test3' );
 $data = from_json($response->content);
 is($data->{total}, 200, 'Total is overriden');
+
+## Test progress status with automatic ID
+$response = dancer_response( GET => '/test_progress_with_progress_id', {
+    params => {
+        progress_id => 1000
+    }   
+});
+is($response->status, 200, '200 response for progress with progress id');
+
+$response = dancer_response( GET => '/_progress_status/1000' );
+is($response->status, 200, 'Get good response from progressstatus');
+my $data = from_json($response->content);
+is($data->{total}, 100, 'Get a sensible response');
+
 
 done_testing(14);

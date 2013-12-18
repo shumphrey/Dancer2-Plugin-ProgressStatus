@@ -142,7 +142,7 @@ sub _get_progress_status_data {
 
 =item start_progress_status
 
-  my $prog = set_progress_status({ name => "MyProgressStatus" });
+  my $prog = start_progress_status({ name => "MyProgressStatus" });
 
 Registers a new progress status for this session and automatically creates
 a route for returning data about the progress status.
@@ -181,6 +181,14 @@ set_progress_status takes a C<name> (required), a C<total> (defaults to 100)
 a C<count> (defaults to 0), and C<messages> an optional arrayref of message
 strings.
 
+If name is not a sufficient identifier to determine uniqueness, the client
+can pass ?progress_id=$progress_id. This will automatically be appended to
+the progress status name without the route needing to know about it.
+
+progress_id can be seen as the progress name defined by the client, and name as
+the progress name defined by the server. Either can be used, at least one must
+be used.
+
 =cut
 register start_progress_status => sub {
     my ($dsl, $args) = @_;
@@ -189,7 +197,12 @@ register start_progress_status => sub {
         $args = { name => $args };
     }
 
-    my $name = delete($args->{name}) or croak 'Must supply progress name';
+    my $progress_id = $dsl->request->params->{progress_id};
+    my $name        = delete $args->{name};
+    if ( !$name && !$progress_id ) {
+        croak 'Must supply name and/or progress_id';
+    }
+    $name .= $progress_id if $progress_id;
 
     my $file = $dsl->_progress_status_file($name);
     if ( $file->is_file ) {
