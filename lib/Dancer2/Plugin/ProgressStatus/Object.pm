@@ -1,7 +1,3 @@
-=head1 NAME
-
-Dancer2::Plugin::ProgressStatus::Object
-
 =head1 DESCRIPTION
 
 An object that represents a progress status.
@@ -10,10 +6,6 @@ An object that represents a progress status.
 
   $progress++;
   $progress->add_message('everything is going swimmingly');
-
-=head1 AUTHOR
-
-Steven Humphrey
 
 =head1 METHODS
 
