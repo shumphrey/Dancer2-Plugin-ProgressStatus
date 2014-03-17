@@ -1,8 +1,4 @@
 # ABSTRACT: Keeps track of progress status
-=head1 NAME
-
-Dancer2::Plugin::ProgressStatus
-
 =head1 DESCRIPTION
 
 Records and fetches progress entries.
