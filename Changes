@@ -2,3 +2,4 @@
 
     - Update test file to use Plack::Test and Test::Warnings
     - Add a Changes file
+    - Use abstracted top level DSL methods to avoid internal changes 

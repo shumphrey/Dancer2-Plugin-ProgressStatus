@@ -193,7 +193,7 @@ register start_progress_status => sub {
         $args = { name => $args };
     }
 
-    my $progress_id = $dsl->request->params->{progress_id};
+    my $progress_id = $dsl->params->{progress_id};
     my $name        = delete $args->{name};
     if ( !$name && !$progress_id ) {
         croak 'Must supply name and/or progress_id';
