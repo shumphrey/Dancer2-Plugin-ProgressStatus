@@ -86,6 +86,7 @@ use JSON qw//;
 
 use Dancer2::Plugin;
 use Dancer2::Plugin::ProgressStatus::Object;
+use Dancer2::Core::Response;
 
 sub _progress_status_file {
     my ( $dsl, $name ) = @_;
@@ -112,9 +113,12 @@ on_plugin_import {
         code    => sub {
             my $context = shift;
             my $data = _get_progress_status_data($dsl, $context->request->params->{'name'});
-            $context->response->content_type('application/json');
 
-            return JSON->new->encode($data);
+            return Dancer2::Core::Response->new(
+                status       => 200,
+                content      => JSON->new->encode($data),
+                content_type => 'application/json',
+            );
         },
     );
 };
