@@ -77,7 +77,7 @@ use JSON;
 use Test::More;
 use Test::Warnings;
 
-my $app  = Plack::Test->create(My::Dancer2::App->psgi_app);
+my $app  = Plack::Test->create(Dancer2->psgi_app);
 my $json = JSON->new->utf8(0);
 
 ############################################################################
