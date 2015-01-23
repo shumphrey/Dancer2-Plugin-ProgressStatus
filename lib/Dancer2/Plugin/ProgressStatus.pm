@@ -35,7 +35,7 @@ for a production environment at this time.
         $progress->add_message('an update message');
     }
 
-    // $progress goes out of scope here and automatically ends the progress meter
+    # $progress goes out of scope here and automatically ends the progress meter
   };
 
 Then with some javascript on the front end, something like this:
