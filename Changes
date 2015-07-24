@@ -1,5 +1,9 @@
 {{$NEXT}}
 
+    - Update travis.yml to support 5.22
+
+0.017     2015-07-24 17:44:09+01:00 Europe/London
+
     - Make work with versions of D2 > 0.159000
     - Update some docs
 
