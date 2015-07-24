@@ -13,3 +13,4 @@ install:
   - dzil listdeps --missing | cpanm
 script:
   - dzil test --author --release
+sudo: false
