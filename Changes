@@ -1,4 +1,6 @@
 {{$NEXT}}
+    - Make work with versions of D2 > 0.159000
+    - Update some docs
 
 0.016     2015-01-22 14:18:14+00:00 Europe/London
 
