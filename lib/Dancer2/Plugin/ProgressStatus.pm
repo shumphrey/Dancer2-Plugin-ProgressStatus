@@ -114,11 +114,12 @@ on_plugin_import {
             my $context = shift;
             my $data = _get_progress_status_data($dsl, $context->request->params->{'name'});
 
-            return Dancer2::Core::Response->new(
-                status       => 200,
-                content      => JSON->new->encode($data),
-                content_type => 'application/json',
-            );
+            $context->response->status(200);
+            $context->response->content(JSON->new->utf8->encode($data));
+            $context->response->content_type('application/json');
+            $context->response->is_encoded(1);
+
+            return $context->response;
         },
     );
 };
@@ -133,7 +134,7 @@ sub _get_progress_status_data {
             status => 'error',
         };
     }
-    my $data = JSON->new->decode($file->slurp_utf8());
+    my $data = JSON->new->utf8(0)->decode($file->slurp_utf8());
     delete $data->{pid};
 
     return $data;
@@ -206,7 +207,7 @@ register start_progress_status => sub {
 
     my $file = $dsl->_progress_status_file($name);
     if ( $file->is_file ) {
-        my $d = JSON->new->decode($file->slurp_utf8());
+        my $d = JSON->new->utf8(0)->decode($file->slurp_utf8());
         my $in_progress = $d->{in_progress};
 
         if ( $in_progress && $d->{pid} != $$ ) {
@@ -222,7 +223,7 @@ register start_progress_status => sub {
     my %objargs = (
         _on_save => sub {
             my ($obj, $is_finished) = @_;
-            my $data = JSON->new->encode({
+            my $data = JSON->new->utf8(0)->encode({
                 start_time  => $obj->start_time,
                 current_time  => $obj->current_time,
                 total       => $obj->total,
@@ -263,7 +264,7 @@ register is_progress_running => sub {
     my $file = $dsl->_progress_status_file($name);
 
     if ( $file->exists ) {
-        my $d = JSON->new->decode($file->slurp_utf8());
+        my $d = JSON->new->utf8(0)->decode($file->slurp_utf8());
         my $in_progress = $d->{in_progress};
 
         if ( $in_progress && $d->{pid} != $$ && kill(0, $d->{pid}) ) {
