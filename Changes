@@ -1,6 +1,5 @@
 {{$NEXT}}
 
-    - Update travis.yml to support 5.22
     - Support new travis containers
 
 0.017     2015-07-24 17:44:09+01:00 Europe/London
