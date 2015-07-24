@@ -7,6 +7,12 @@ This module allows your route to start a progress status meter and update it
 whilst your long running task is in progress.
 How you break up the running task is up to you.
 
+e.g. Let's say your webapp uploads a file to the server. The server then needs
+to upload that file to a new location.
+Although the client can already get progress info about the first upload, it
+cannot get progress about the second upload.
+This plugin allows you to separately query the server about a long running job.
+
 Whilst the long running task is in progress, an AJAX GET request can be made to
 C</_progress_status/:name> to fetch JSON serialized data representing the
 progress status that matches :name
@@ -107,6 +113,8 @@ on_plugin_import {
     # determine if there is a prefix?
 
     # Register the route for fetching messages
+    # We must specify the content_type and encoding here because this plugin
+    # only works for json, and the D2 config might have other settings
     $dsl->app->add_route(
         method  => 'get',
         regexp  => '/_progress_status/:name',
