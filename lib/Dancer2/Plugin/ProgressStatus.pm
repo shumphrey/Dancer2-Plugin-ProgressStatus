@@ -72,6 +72,7 @@ If the directory does not exist, it will be created.
 =head1 SEE ALSO
 
 L<Dancer2>
+L<Dancer2::Plugin2>
 
 =head1 METHODS
 
@@ -90,15 +91,15 @@ use File::Path qw//;
 use Carp;
 use JSON qw//;
 
-use Dancer2::Plugin;
+use Dancer2::Plugin2;
 use Dancer2::Plugin::ProgressStatus::Object;
 use Dancer2::Core::Response;
 
 sub _progress_status_file {
-    my ( $dsl, $name ) = @_;
+    my ( $plugin, $name ) = @_;
 
-    my $dir = $dsl->config->{'plugins'}->{ProgressStatus}->{dir}
-                or croak 'No ProgressStatus plugin settings in config';
+    my $dir = $plugin->config->{dir}
+        or croak 'No ProgressStatus plugin settings in config';
     if ( !-d $dir ) {
         File::Path::make_path($dir) or die "Cannot create path $dir";
     }
@@ -106,21 +107,20 @@ sub _progress_status_file {
     return Path::Tiny::path($dir, md5_hex($name));
 }
 
-
-on_plugin_import {
-    my $dsl = shift;
+sub BUILD {
+    my $plugin = shift;
 
     # determine if there is a prefix?
 
     # Register the route for fetching messages
     # We must specify the content_type and encoding here because this plugin
     # only works for json, and the D2 config might have other settings
-    $dsl->app->add_route(
+    $plugin->app->add_route(
         method  => 'get',
         regexp  => '/_progress_status/:name',
         code    => sub {
             my $context = shift;
-            my $data = _get_progress_status_data($dsl, $context->request->params->{'name'});
+            my $data = $plugin->_get_progress_status_data($context->request->params->{'name'});
 
             $context->response->status(200);
             $context->response->content(JSON->new->utf8->encode($data));
@@ -133,9 +133,9 @@ on_plugin_import {
 };
 
 sub _get_progress_status_data {
-    my ($dsl, $name) = @_;
+    my ($plugin, $name) = @_;
 
-    my $file = $dsl->_progress_status_file($name);
+    my $file = $plugin->_progress_status_file($name);
     if ( !$file->is_file ) {
         return {
             error  => "No such progress status $name",
@@ -199,21 +199,21 @@ the progress name defined by the server. Either can be used, at least one must
 be used.
 
 =cut
-register start_progress_status => sub {
-    my ($dsl, $args) = @_;
+plugin_keywords start_progress_status => sub {
+    my ($plugin, $args) = @_;
 
     if ( !ref($args) ) {
         $args = { name => $args };
     }
 
-    my $progress_id = $dsl->params->{progress_id};
+    my $progress_id = $plugin->app->request->params->{progress_id};
     my $name        = delete $args->{name};
     if ( !$name && !$progress_id ) {
         croak 'Must supply name and/or progress_id';
     }
     $name .= $progress_id if $progress_id;
 
-    my $file = $dsl->_progress_status_file($name);
+    my $file = $plugin->_progress_status_file($name);
     if ( $file->is_file ) {
         my $d = JSON->new->utf8(0)->decode($file->slurp_utf8());
         my $in_progress = $d->{in_progress};
@@ -267,9 +267,9 @@ progress meters with the same name start at the same time so this can be used
 to confirm without catching the start call in an eval.
 
 =cut
-register is_progress_running => sub {
-    my ( $dsl, $name ) = @_;
-    my $file = $dsl->_progress_status_file($name);
+plugin_keywords is_progress_running => sub {
+    my ( $plugin, $name ) = @_;
+    my $file = $plugin->_progress_status_file($name);
 
     if ( $file->exists ) {
         my $d = JSON->new->utf8(0)->decode($file->slurp_utf8());
