@@ -1,7 +1,7 @@
 Dancer2::Plugin::ProgressStatus
 ==============================
 
-[![Build Status](https://travis-ci.org/shumphrey/Dancer2-Plugin-ProgressStatus.png?    branch=master)](https://travis-ci.org/shumphrey/Dancer2-Plugin-ProgressStatus)
+[![Build Status](https://travis-ci.org/shumphrey/Dancer2-Plugin-ProgressStatus.png?branch=master)](https://travis-ci.org/shumphrey/Dancer2-Plugin-ProgressStatus)
 
 A Dancer2 plugin that provides progress status helpers.
 
