@@ -3,7 +3,11 @@ Dancer2::Plugin::ProgressStatus
 
 [![Build Status](https://travis-ci.org/shumphrey/Dancer2-Plugin-ProgressStatus.png?branch=master)](https://travis-ci.org/shumphrey/Dancer2-Plugin-ProgressStatus)
 
-A Dancer2 plugin that provides progress status helpers.
+A Dancer2 plugin that helps track the progress of long running server side tasks.
+This plugin sets up another route that can be polled to find out its progress.
+
+This progress route returns JSON information about your long running task.
+The plugin provides new keywords to set the status of the task.
 
 To install this module from source:
 
