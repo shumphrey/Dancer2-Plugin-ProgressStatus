@@ -97,7 +97,7 @@ use Dancer2::Core::Response;
 sub _progress_status_file {
     my ( $dsl, $name ) = @_;
 
-    my $dir = $dsl->config->{'plugins'}->{ProgressStatus}->{dir}
+    my $dir = $dsl->app->config->{'plugins'}{ProgressStatus}{dir}
                 or croak 'No ProgressStatus plugin settings in config';
     if ( !-d $dir ) {
         File::Path::make_path($dir) or die "Cannot create path $dir";
